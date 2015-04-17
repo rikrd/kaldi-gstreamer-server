@@ -42,6 +42,7 @@ class Application(tornado.web.Application):
             (r"/", MainHandler),
             (r"/client/ws/speech", DecoderSocketHandler),
             (r"/client/ws/status", StatusSocketHandler),
+            (r"/client/dynamic/create", CreateHandler),
             (r"/client/dynamic/reference", ReferenceHandler),
             (r"/client/dynamic/recognize", HttpChunkedRecognizeHandler),
             (r"/worker/ws/speech", WorkerSocketHandler),
@@ -218,6 +219,11 @@ class ReferenceHandler(tornado.web.RequestHandler):
         self.set_header('Access-Control-Max-Age', 1000)
         # note that '*' is not valid for Access-Control-Allow-Headers
         self.set_header('Access-Control-Allow-Headers',  'origin, x-csrftoken, content-type, accept, User-Id, Content-Id')
+
+
+class CreateHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("../README.md")
 
 
 class StatusSocketHandler(tornado.websocket.WebSocketHandler):

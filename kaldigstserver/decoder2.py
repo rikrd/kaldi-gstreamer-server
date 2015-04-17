@@ -85,6 +85,9 @@ class DecoderPipeline2(object):
         self.asr.connect('partial-result', self._on_partial_result)
         self.asr.connect('final-result', self._on_final_result)
 
+        self.asr.connect('final-phone-alignment', self._on_final_phone_alignment)
+
+
         logger.info("Setting pipeline to READY")
         self.pipeline.set_state(Gst.State.READY)
         logger.info("Set pipeline to READY")
@@ -104,6 +107,9 @@ class DecoderPipeline2(object):
         logger.info("%s: Got final result: %s" % (self.request_id, hyp.decode('utf8')))
         if self.result_handler:
             self.result_handler(hyp, True)
+
+    def _on_final_phone_alignment(self, asr, hyp):
+        logger.info("%s: Got final phone alignment: %s" % (self.request_id, hyp.decode('utf8')))
 
     def _on_error(self, bus, msg):
         self.error = msg.parse_error()
@@ -129,6 +135,15 @@ class DecoderPipeline2(object):
         """
 
         return self.asr.set_property("adaptation-state", adaptation_state)
+
+    def get_property(self, property_name):
+        return self.asr.get_property(property_name)
+
+    def set_property(self, property_name, property_value):
+        self.asr.set_property(property_name, property_value)
+        self.pipeline.set_state(Gst.State.PAUSED)
+        self.pipeline.set_state(Gst.State.PLAYING)
+        return
 
     def finish_request(self):
         logger.info("%s: Resetting decoder state" % self.request_id)
