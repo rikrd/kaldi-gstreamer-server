@@ -48,6 +48,7 @@ class ServerWebsocket(WebSocketClient):
         self.partial_transcript = ""
         if USE_NNET2:
             self.decoder_pipeline.set_result_handler(self._on_result)
+            self.decoder_pipeline.set_alignment_handler(self._on_alignment)
             self.decoder_pipeline.set_error_handler(self._on_error)
         else:
             self.decoder_pipeline.set_word_handler(self._on_word)
@@ -158,6 +159,22 @@ class ServerWebsocket(WebSocketClient):
     def _on_result(self, result, final):
         self.last_decoder_message = time.time()
         logger.info("%s: Postprocessing (final=%s) result.."  % (self.request_id, final))
+        processed_transcript = self.post_process(result)
+        logger.info("%s: Postprocessing done." % self.request_id)
+        event = dict(status=common.STATUS_SUCCESS,
+                     segment=self.num_segments,
+                     result=dict(hypotheses=[dict(transcript=processed_transcript)], final=final))
+        try:
+            self.send(json.dumps(event))
+        except:
+            e = sys.exc_info()[1]
+            logger.warning("Failed to send event to master: %s" % e)
+        if final:
+            self.num_segments += 1
+
+    def _on_alignment(self, result, final):
+        self.last_decoder_message = time.time()
+        logger.info("%s: Postprocessing (final=%s) alignment.."  % (self.request_id, final))
         processed_transcript = self.post_process(result)
         logger.info("%s: Postprocessing done." % self.request_id)
         event = dict(status=common.STATUS_SUCCESS,

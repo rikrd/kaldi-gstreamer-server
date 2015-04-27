@@ -150,8 +150,9 @@ class ServerWebsocket(WebSocketClient):
                             logger.warning("%s: Cannot handle adaptation state type " % (
                             self.request_id, as_props.get('type', "")))
 
-                    else:
-                        
+                    elif 'parameters' in props:
+                        logger.warning('{}: Implement parameter changing message'.format(self.request_id))
+
                     else:
                         logger.warning("%s: Got JSON message but don't know what to do with it" % (self.request_id))
 

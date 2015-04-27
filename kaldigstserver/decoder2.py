@@ -23,13 +23,14 @@ class DecoderPipeline2(object):
         logger.info("Creating decoder using conf: %s" % conf)
         self.create_pipeline(conf)
         self.outdir = conf.get("out-dir", None)
-        if not os.path.exists(self.outdir):
-            os.mkdir(self.outdir)
-        elif not os.path.isdir(self.outdir):
-            raise Exception("Output directory %s already exists as a file" % self.outdir)
-
+        if self.outdir:
+            if not os.path.exists(self.outdir):
+                os.mkdir(self.outdir)
+            elif not os.path.isdir(self.outdir):
+                raise Exception("Output directory %s already exists as a file" % self.outdir)
 
         self.result_handler = None
+        self.alignment_handler = None
         self.eos_handler = None
         self.error_handler = None
         self.request_id = "<undefined>"
@@ -121,6 +122,8 @@ class DecoderPipeline2(object):
 
     def _on_final_phone_alignment(self, asr, hyp):
         logger.info("%s: Got final phone alignment: %s" % (self.request_id, hyp.decode('utf8')))
+        if self.alignment_handler:
+            self.alignment_handler(hyp, True)
 
     def _on_error(self, bus, msg):
         self.error = msg.parse_error()
@@ -211,6 +214,9 @@ class DecoderPipeline2(object):
 
     def set_result_handler(self, handler):
         self.result_handler = handler
+
+    def set_alignment_handler(self, handler):
+        self.alignment_handler = handler
 
     def set_eos_handler(self, handler, user_data=None):
         self.eos_handler = (handler, user_data)
