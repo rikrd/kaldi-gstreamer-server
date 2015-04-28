@@ -13,10 +13,9 @@ Gst.init(None)
 import logging
 import thread
 import os
-
+import pdb
 logger = logging.getLogger(__name__)
 
-import pdb
 
 class DecoderPipeline2(object):
     def __init__(self, conf={}):
@@ -35,9 +34,7 @@ class DecoderPipeline2(object):
         self.error_handler = None
         self.request_id = "<undefined>"
 
-
     def create_pipeline(self, conf):
-
         self.appsrc = Gst.ElementFactory.make("appsrc", "appsrc")
         self.decodebin = Gst.ElementFactory.make("decodebin", "decodebin")
         self.audioconvert = Gst.ElementFactory.make("audioconvert", "audioconvert")
@@ -72,7 +69,7 @@ class DecoderPipeline2(object):
         logger.info('Linking GStreamer elements')
 
         self.appsrc.link(self.decodebin)
-        #self.appsrc.link(self.audioconvert)
+        # self.appsrc.link(self.audioconvert)
         self.decodebin.connect('pad-added', self._connect_decoder)
         self.audioconvert.link(self.audioresample)
 
@@ -92,13 +89,12 @@ class DecoderPipeline2(object):
         self.bus.enable_sync_message_emission()
         self.bus.connect('message::eos', self._on_eos)
         self.bus.connect('message::error', self._on_error)
-        #self.bus.connect('message::cutter', self._on_cutter)
+        # self.bus.connect('message::cutter', self._on_cutter)
 
         self.asr.connect('partial-result', self._on_partial_result)
         self.asr.connect('final-result', self._on_final_result)
 
         self.asr.connect('final-phone-alignment', self._on_final_phone_alignment)
-
 
         logger.info("Setting pipeline to READY")
         self.pipeline.set_state(Gst.State.READY)
@@ -108,7 +104,6 @@ class DecoderPipeline2(object):
         logger.info("%s: Connecting audio decoder" % self.request_id)
         pad.link(self.audioconvert.get_static_pad("sink"))
         logger.info("%s: Connected audio decoder" % self.request_id)
-
 
     def _on_partial_result(self, asr, hyp):
         logger.info("%s: Got partial result: %s" % (self.request_id, hyp.decode('utf8')))
@@ -121,7 +116,7 @@ class DecoderPipeline2(object):
             self.result_handler(hyp, True)
 
     def _on_final_phone_alignment(self, asr, hyp):
-        logger.info("%s: Got final phone alignment: %s" % (self.request_id, hyp.decode('utf8')))
+        logger.info("%s: Got final phone alignment: \n%s" % (self.request_id, hyp.decode('utf8')))
         if self.alignment_handler:
             self.alignment_handler(hyp, True)
 
@@ -134,7 +129,7 @@ class DecoderPipeline2(object):
 
     def _on_eos(self, bus, msg):
         logger.info('%s: Pipeline received eos signal' % self.request_id)
-        #self.decodebin.unlink(self.audioconvert)
+        # self.decodebin.unlink(self.audioconvert)
         self.finish_request()
         if self.eos_handler:
             self.eos_handler[0](self.eos_handler[1])
@@ -168,7 +163,6 @@ class DecoderPipeline2(object):
         self.pipeline.set_state(Gst.State.NULL)
         self.request_id = "<undefined>"
 
-
     def init_request(self, id, caps_str):
         self.request_id = id
         logger.info("%s: Initializing request" % (self.request_id))
@@ -177,11 +171,11 @@ class DecoderPipeline2(object):
             caps = Gst.caps_from_string(caps_str)
             self.appsrc.set_property("caps", caps)
         else:
-            #caps = Gst.caps_from_string("")
+            # caps = Gst.caps_from_string("")
             self.appsrc.set_property("caps", None)
-            #self.pipeline.set_state(Gst.State.READY)
+            # self.pipeline.set_state(Gst.State.READY)
             pass
-        #self.appsrc.set_state(Gst.State.PAUSED)
+        # self.appsrc.set_state(Gst.State.PAUSED)
 
         if self.outdir:
             self.pipeline.set_state(Gst.State.PAUSED)
@@ -189,13 +183,13 @@ class DecoderPipeline2(object):
             self.filesink.set_property('location', "%s/%s.raw" % (self.outdir, id))
             self.filesink.set_state(Gst.State.PLAYING)
 
-        #self.filesink.set_state(Gst.State.PLAYING)        
-        #self.decodebin.set_state(Gst.State.PLAYING)
+        # self.filesink.set_state(Gst.State.PLAYING)
+        # self.decodebin.set_state(Gst.State.PLAYING)
         self.pipeline.set_state(Gst.State.PLAYING)
         self.filesink.set_state(Gst.State.PLAYING)
         # push empty buffer (to avoid hang on client diconnect)
-        #buf = Gst.Buffer.new_allocate(None, 0, None)
-        #self.appsrc.emit("push-buffer", buf)
+        # buf = Gst.Buffer.new_allocate(None, 0, None)
+        # self.appsrc.emit("push-buffer", buf)
 
         # reset adaptation state
         self.set_adaptation_state("")
@@ -206,7 +200,6 @@ class DecoderPipeline2(object):
         buf.fill(0, data)
         self.appsrc.emit("push-buffer", buf)
         logger.debug('%s: Pushing buffer done' % self.request_id)
-
 
     def end_request(self):
         logger.info("%s: Pushing EOS to pipeline" % self.request_id)
@@ -224,15 +217,14 @@ class DecoderPipeline2(object):
     def set_error_handler(self, handler):
         self.error_handler = handler
 
-
     def cancel(self):
         logger.info("%s: Sending EOS to pipeline in order to cancel processing" % self.request_id)
         self.appsrc.emit("end-of-stream")
-        #self.asr.set_property("silent", True)
-        #self.pipeline.set_state(Gst.State.NULL)
+        # self.asr.set_property("silent", True)
+        # self.pipeline.set_state(Gst.State.NULL)
 
-        #if (self.pipeline.get_state() == Gst.State.PLAYING):
-        #logger.debug("Sending EOS to pipeline")
-        #self.pipeline.send_event(Gst.Event.new_eos())
-        #self.pipeline.set_state(Gst.State.READY)
+        # if (self.pipeline.get_state() == Gst.State.PLAYING):
+        # logger.debug("Sending EOS to pipeline")
+        # self.pipeline.send_event(Gst.Event.new_eos())
+        # self.pipeline.set_state(Gst.State.READY)
         logger.info("%s: Cancelled pipeline" % self.request_id)

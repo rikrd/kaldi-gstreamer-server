@@ -23,19 +23,23 @@ def _find_replace(filename, before, after):
         f.write(text_after)
 
 
-def get_wsj_model(model='exp/nnet2_online/nnet_ms_a_online', graph='exp/tri4b', output_dir='english/wsj'):
+def get_wsj_model(model='exp/nnet2_online/nnet_ms_a_online', graph='exp/tri4b/graph_tgpr', lang='data/lang',
+                  output_dir='english/wsj'):
     """Download the WSJ model.
 
     :return:
     """
     model_files = ['final.mdl',
                    'conf',
-                   'ivector_extractor']
+                   'ivector_extractor',
+                   'tree']
 
     graph_files = ['HCLG.fst',
                    'words.txt',
                    'phones.txt',
                    'phones']
+
+    lang_files = ['L.fst']
 
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
@@ -49,7 +53,11 @@ def get_wsj_model(model='exp/nnet2_online/nnet_ms_a_online', graph='exp/tri4b', 
                     local_path='%(path)s')
 
             for filename in graph_files:
-                get(os.path.join(graph, 'graph_tgpr', filename),
+                get(os.path.join(graph, filename),
+                    local_path='%(path)s')
+
+            for filename in lang_files:
+                get(os.path.join(lang, filename),
                     local_path='%(path)s')
 
     # Replace the paths make them relative to ..
