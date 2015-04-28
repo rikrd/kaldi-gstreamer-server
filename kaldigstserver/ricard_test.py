@@ -99,28 +99,40 @@ class Ricard2Tests(unittest.TestCase):
         self.assertEqual([], self.final_hyps)
 
     def testForcedAlginment(self):
-        self.decoder_pipeline.asr.set_property('model', os.path.join(self.model_dir, 'final.mdl'))
+        self.decoder_pipeline.set_property('model', os.path.join(self.model_dir, 'final.mdl'))
 
-        words_file = self.decoder_pipeline.asr.get_property('word-syms')
-        model_file = self.decoder_pipeline.asr.get_property('model')
+        words_file = self.decoder_pipeline.get_property('word-syms')
+        model_file = self.decoder_pipeline.get_property('model')
         model_dir = os.path.dirname(model_file)
 
         tree_file = os.path.join(model_dir, 'tree')
-        lexicon_fst_file = os.path.join(model_dir, 'L.fst')
+        lexicon_fst_file = os.path.join(model_dir, 'L_disambig.fst')
+        disambig_file = os.path.join(model_dir, 'phones', 'disambig.int')
 
-        if False:
-            cmd = '$KALDI_ROOT/src/bin/compile-train-graphs ' \
-                  '{tree_file} {model_file} {lm_fst_file} ' \
-                  '"ark:echo ''dummy_id ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT'' |' \
-                  ' $KALDI_ROOT/egs/wsj/s5/utils/sym2int.pl --map-oov 2 -f 2- {words_file} -|" ' \
-                  '"scp,p:echo dummy_id -|" > NEW.fst'.format(tree_file=tree_file,
-                                                              model_file=model_file,
-                                                              lm_fst_file=lexicon_fst_file,
-                                                              words_file=words_file)
+        if not os.path.isfile(tree_file) \
+                or not os.path.isfile(lexicon_fst_file) \
+                or not os.path.isfile(disambig_file):
+            logging.error('Could not find the necessary model files: \n  {}\n  {}\n  {}'.format(tree_file,
+                                                                                                lexicon_fst_file,
+                                                                                                disambig_file))
 
-            subprocess.call(cmd, shell=True)
+        text = 'ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT'
+        out_fst_file = 'NEW.fst'
 
-        self.decoder_pipeline.asr.set_property('fst', os.path.abspath('NEW.fst'))
+        cmd = '$KALDI_ROOT/src/bin/compile-train-graphs --read-disambig-syms={disambig_file} ' \
+              '{tree_file} {model_file} {lm_fst_file} ' \
+              '"ark:echo ''dummy_id {text}'' |' \
+              ' $KALDI_ROOT/egs/wsj/s5/utils/sym2int.pl --map-oov 2 -f 2- {words_file} -|" ' \
+              '"scp,p:echo dummy_id -|" > {out_fst_file}'.format(text=text,
+                                                                 disambig_file=disambig_file,
+                                                                 tree_file=tree_file,
+                                                                 model_file=model_file,
+                                                                 lm_fst_file=lexicon_fst_file,
+                                                                 words_file=words_file,
+                                                                 out_fst_file=out_fst_file)
+        subprocess.call(cmd, shell=True)
+
+        self.decoder_pipeline.set_property('fst', os.path.abspath(out_fst_file))
 
         self.decoder_pipeline.init_request("testForcedAlignment",
                                            "audio/x-raw, layout=(string)interleaved, rate=(int)16000, "

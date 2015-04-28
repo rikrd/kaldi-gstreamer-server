@@ -149,8 +149,8 @@ class DecoderPipeline2(object):
         return self.asr.get_property(property_name)
 
     def set_property(self, property_name, property_value):
-        self.asr.set_property(property_name, property_value)
         self.pipeline.set_state(Gst.State.PAUSED)
+        self.asr.set_property(property_name, property_value)
         self.pipeline.set_state(Gst.State.PLAYING)
         return
 
