@@ -72,4 +72,4 @@ def get_wsj_model(recipe_path=os.path.join(kaldi_path, 'egs/wsj/s5'),
     for filename in glob.glob(os.path.join(output_dir, 'conf', '*.conf')):
         _find_replace(filename,
                       os.path.join(recipe_path, model_path),
-                      os.path.relpath(output_dir, start=os.path.abspath('kaldigstserver')))
+                      os.path.abspath(output_dir))
